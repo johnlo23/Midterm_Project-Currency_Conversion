@@ -14,8 +14,10 @@ def load_rates(rate_file):
     try:
         with open(rate_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
+            i = 0  # counter
             for row in reader:
-                f_rate_dict[row['COUNTRY']] = {'currency': row['CURRENCY'], 'rate': row['RATE']}
+                i += 1
+                f_rate_dict[row['COUNTRY']] = {'order': i, 'currency': row['CURRENCY'], 'rate': row['RATE']}
 
     # If file not found
     except FileNotFoundError:
@@ -43,36 +45,50 @@ def load_rates(rate_file):
 # Print current rates
 def print_rates(f_rate_dict):
 
+    # List is printed in two columns
     country_list = list(f_rate_dict)
     list_len = len(country_list)
-    half_list_len = list_len // 2
-    print('Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate', end='')
-    print(" "*14, end='')
-    print('Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate')
-    print('-'*42, end='')
-    print(" "*9, end='')
-    print('-'*42)
+    half_list_len = (list_len // 2) + 1
+    # Heading
+    print('#   ' + 'Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate', end='')
+    print(" "*10, end='')
+    print('#   ' + 'Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate')
+    print('-'*43, end='')
+    print(" "*8, end='')
+    print('-'*43)
 
     for i in range(0, half_list_len):
+        # Print left side list
         country1 = country_list[i]
+        order = str(f_rate_dict[country1]['order']) + ". "
         currency1 = f_rate_dict[country1]['currency']
         rate1 = f_rate_dict[country1]['rate']
+        print(order, end='')
+        print(" "*(4-len(order)), end='')
         print(currency1, end='')
         print(" "*(15-len(currency1)), end='')
         print(country1, end='')
         print(" "*(18-len(country1)), end='')
         print(rate1, end='')
-        if (i + half_list_len) <= list_len:
+        # If right list shorter than left list, avoid error
+        if (i + half_list_len) < list_len:
+            # Print right side list
             country2 = country_list[i + half_list_len]
+            order2 = str(f_rate_dict[country2]['order']) + ". "
             currency2 = f_rate_dict[country2]['currency']
             rate2 = f_rate_dict[country2]['rate']
-            print(" "*(18-len(rate1)), end='')
+            print(" "*(14-len(rate1)), end='')
+            print(order2, end='')
+            print(" "*(4-len(order2)), end='')
             print(currency2, end='')
             print(" "*(15-len(currency2)), end='')
             print(country2, end='')
             print(" "*(18-len(country2)), end='')
             print(rate2)
     print()
+    print()
+
+
 
 # Main
 
