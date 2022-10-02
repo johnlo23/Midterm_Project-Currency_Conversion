@@ -19,15 +19,15 @@ def is_float(f_string):
 
 # Load rates from CSV file
 def load_rates(rate_file):
-    f_rate_dict = dict()
     # Attempt to open and read data file
     try:
         with open(rate_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
-            i = 0  # counter
+            # initialize rate list
+            f_rate_list = list()
+            f_rate_list.append({'country': 'USA', 'currency': 'DOLLAR', 'rate': '1.00'})
             for row in reader:
-                i += 1
-                f_rate_dict[row['COUNTRY']] = {'order': i, 'currency': row['CURRENCY'], 'rate': row['RATE']}
+                f_rate_list.append({'country': row['COUNTRY'], 'currency': row['CURRENCY'], 'rate': row['RATE']})
 
     # If file not found
     except FileNotFoundError:
@@ -49,15 +49,41 @@ def load_rates(rate_file):
         input("Press <enter> to quit.")
         quit()
 
-    return f_rate_dict
+    return f_rate_list
+
+
+# Get details of a currency
+def currency_detail(f_order, f_rate_list):
+    currency = f_rate_list[f_order]['currency']
+    country = f_rate_list[f_order]['country']
+    rate = f_rate_list[f_order]['rate']
+    return str(f_order), currency, country, rate
+
+
+# Print the currency detail header
+def print_currency_header():
+    print('#   ' + 'Currency Name' + " " * 2 + 'Country' + " " * 11 + 'Rate', end='')
+
+
+# Print one currency's details
+def display_currency(f_order, f_rate_list):
+    f_order_str, f_currency, f_country, f_rate = currency_detail(f_order, f_rate_list)
+
+    f_order_str = f_order_str + ". "
+    print(f_order_str, end='')
+    print(" " * (4 - len(f_order_str)), end='')
+    print(f_currency, end='')
+    print(" " * (15 - len(f_currency)), end='')
+    print(f_country, end='')
+    print(" " * (18 - len(f_country)), end='')
+    print(f_rate, end='')
 
 
 # Print current rates
-def print_rates(f_rate_dict):
+def print_rates(f_rate_list):
 
     # List is printed in two columns
-    country_list = list(f_rate_dict)
-    list_len = len(country_list)
+    list_len = len(f_rate_list)
 
     # To get the number of entries to print on the left side divide
     # list length in half but always have the greater number of
@@ -66,41 +92,23 @@ def print_rates(f_rate_dict):
     half_list_len = math.ceil(list_len / 2)
 
     # Heading
-    print('#   ' + 'Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate', end='')
+    print()
+    print_currency_header()
     print(" "*10, end='')
-    print('#   ' + 'Currency Name' + " "*2 + 'Country' + " "*11 + 'Rate')
+    print_currency_header()
+    print()
     print('-'*43, end='')
     print(" "*8, end='')
     print('-'*43)
 
     for i in range(0, half_list_len):
         # Print left side list
-        country1 = country_list[i]
-        order = str(f_rate_dict[country1]['order']) + ". "
-        currency1 = f_rate_dict[country1]['currency']
-        rate1 = f_rate_dict[country1]['rate']
-        print(order, end='')
-        print(" "*(4-len(order)), end='')
-        print(currency1, end='')
-        print(" "*(15-len(currency1)), end='')
-        print(country1, end='')
-        print(" "*(18-len(country1)), end='')
-        print(rate1, end='')
-        # If right list shorter than left list, avoid error
-        if (i + half_list_len) < list_len:
-            # Print right side list
-            country2 = country_list[i + half_list_len]
-            order2 = str(f_rate_dict[country2]['order']) + ". "
-            currency2 = f_rate_dict[country2]['currency']
-            rate2 = f_rate_dict[country2]['rate']
-            print(" "*(14-len(rate1)), end='')
-            print(order2, end='')
-            print(" "*(4-len(order2)), end='')
-            print(currency2, end='')
-            print(" "*(15-len(currency2)), end='')
-            print(country2, end='')
-            print(" "*(18-len(country2)), end='')
-            print(rate2)
+        display_currency(i, f_rate_list)
+        i2 = i + half_list_len
+        if i2 < list_len:
+            print(" " * (14 - len(f_rate_list[i]['rate'])), end='')
+            display_currency(i2, f_rate_list)
+            print()
         else:
             # Filler for no right entry
             print()
@@ -108,7 +116,7 @@ def print_rates(f_rate_dict):
 
 
 # Print main menu
-def main_menu(f_menu_tuple):
+def display_menu(f_menu_tuple):
     print("- - - - Menu - - - -")
     for i in range(0, len(f_menu_tuple)):
         print(f"{str(i+1)}. {f_menu_tuple[i]}")
@@ -136,7 +144,7 @@ def get_menu_response(f_menu_tuple):
 def get_new_fee(f_conversion_fee):
     # loop until valid response or quit
     while True:
-        response = input("Please enter the new fee as a percent: ").strip()
+        response = input("Please enter the new fee as a percent (blank for no change): ").strip()
         # User entered nothing, return original amount
         if len(response) == 0:
             return f_conversion_fee
@@ -157,14 +165,101 @@ def get_new_fee(f_conversion_fee):
                     return response / 100
 
 
+# Check that user selected currency type is valid
+def get_currency_type(f_rate_list, f_input_string):
+    # loop until user selects valid currency type
+    while True:
+        # Get user input with message supplied
+        print()
+        response = input(f"{f_input_string}: ").strip().rstrip('.')
+        # check if an integer was entered
+        if response.isdigit():
+            response = int(response)
+            if response in range(1, len(f_rate_list)+1):
+                return response - 1
+
+        # User did not enter a valid menu response
+        print("Please enter a valid # from the currency list")
+
+
+# Get the amount of currency to convert
+def get_currency_amount(f_currency, f_country):
+    # Loop until valid response is entered
+    while True:
+        print()
+        response = input(f"Please enter the amount of {f_currency} {f_country} to convert: ").strip()
+        if is_float(response):
+            response = float(response)
+            if response > 0:
+                return response
+
+        # User did not enter a valid response
+        print("Please enter a numeric currency amount greater than zero.")
+
+
+# Convert currency based on from rate, to rate, and from amount
+def currency_convert(f_from_rate, f_to_rate, f_amount, f_fee):
+    # convert rate strings to float
+    f_from_rate = float(f_from_rate)
+    f_to_rate = float(f_to_rate)
+
+    # Divide from currency by to currency to get rate, handle divide by zero
+    try:
+        exchange_rate = f_from_rate / f_to_rate
+    except ZeroDivisionError:
+        print('Error in conversion rate. Cannot divide by zero')
+        return 0, 0
+
+    # Multiply rate by exchange amount to get sub-total
+    sub_total = exchange_rate * f_amount
+    sub_total = round(sub_total, 4)
+
+    # Multiply sub-total by fee percent to get fee
+    fee = sub_total * f_fee
+    fee = round(fee, 4)
+
+    return sub_total, fee
+
+
+# Menu for exchange rate actions
+def exchange_menu(f_rate_list):
+    # Loop to return to exchange rate menu until user exits
+    while True:
+        print()
+        print("- - - - - Exchange Rate Maintenance - - - - -")
+        print()
+        display_menu(exchange_menu_tuple)
+        exchange_menu_response = get_menu_response(exchange_menu_tuple)
+        exchange_action(exchange_menu_response, f_rate_list)
+
+
+# Perform exchange actions
+def exchange_action(f_menu_choice, f_rate_list):
+
+    # 1. Show exchange rates
+    if f_menu_choice == 1:
+        print_rates(f_rate_list)
+
+    # 2. Update exchange rate
+    if f_menu_choice == 2:
+        print_rates(f_rate_list)
+        update_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to update")
+        print()
+        print_currency_header()
+        print()
+        print('-' * 43)
+        display_currency(update_currency, f_rate_list)
+        print()
+
+
 # Perform main menu action
-def main_action(f_menu_choice, f_conv_fee):
+def main_action(f_menu_choice, f_conv_fee, f_rate_list):
 
     # 1. Show exchange rates
     if f_menu_choice == 1:
         # Print rates
         print()
-        print_rates(rate_dict)
+        print_rates(rate_list)
 
     # 2. Set exchange fee
     elif f_menu_choice == 2:
@@ -176,12 +271,46 @@ def main_action(f_menu_choice, f_conv_fee):
         print("The new conversion fee is " + "{:.2%}".format(f_conv_fee))
 
     # 3. Convert a currency
+    elif f_menu_choice == 3:
+        print()
+        print("Currency Conversion")
+        # Print current rates
+        print_rates(f_rate_list)
+
+        # Get the FROM currency type
+        from_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to convert FROM")
+
+        # Get the FROM currency amount
+        exchange_amount = get_currency_amount(f_rate_list[from_currency]['country'],
+                                              f_rate_list[from_currency]['currency'])
+
+        # get the TO currency type
+        to_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to convert TO")
+
+        # Do conversion math
+        converted_amount, fee = currency_convert(f_rate_list[from_currency]['rate'],
+                                                 f_rate_list[to_currency]['rate'],
+                                                 exchange_amount, conversion_fee)
+
+        print()
+        print(f"You can exchange {exchange_amount} {f_rate_list[from_currency]['country']} "
+              f"{f_rate_list[from_currency]['currency']} for {converted_amount} "
+              f"{f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
+        print(f"The exchange fee is {fee} {f_rate_list[to_currency]['currency']}.")
+        print(f"The final converted amount with fee is {round(converted_amount - fee, 4)}"
+              f" {f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
 
 
     # 4. Update exchange rates
-
+    elif f_menu_choice == 4:
+        exchange_menu(rate_list)
 
     # 5. Quit
+    elif f_menu_choice == 5:
+        print()
+        print("Thank you for using the Conversion Utility.")
+        input("Press <enter> to quit.")
+        quit()
 
 
 # Main
@@ -189,42 +318,48 @@ def main_action(f_menu_choice, f_conv_fee):
 conversion_fee = 0.01
 
 # Load rates into dictionary from file
-rate_dict = load_rates(RATE_FILE)
+rate_list = load_rates(RATE_FILE)
 
 # Menu options
 main_menu_tuple = ('Show exchange rates', 'Set exchange fee', 'Convert a currency',
                    'Update exchange rates', 'Quit')
+
+exchange_menu_tuple = ('Show exchange rates', 'Update exchange rate', 'Add new currency',
+                       'Remove a currency', 'Save rates to file', 'Load rates from file',
+                       'Exit')
 
 # intro
 print("This program will help you convert currency")
 print("")  # extra blank line
 
 # Print rates
-print_rates(rate_dict)
+print_rates(rate_list)
 
 # Current exchange fee as percentage
 print("Exchange fee: " + "{:.2%}".format(conversion_fee))
 print()
 
 while True:
-    main_menu(main_menu_tuple)
+    print("- - - - - Conversion Utility - - - - -")
+    print()
+    display_menu(main_menu_tuple)
     # get input from user
 
     menu_response = get_menu_response(main_menu_tuple)
 
-    main_action(menu_response, conversion_fee)
+    main_action(menu_response, conversion_fee, rate_list)
 
     print()
 
-    cur_name = input("Tell me the name of the currency you have for exchange: ")
-    cur_amount = input("Enter the amount of " + cur_name + " you want to exchange: ")
-    cur_new_name = input("Tell me the name of the currency you want to convert to: ")
-    cur_exchange_rate = input("Enter the exchange rate from " + cur_name + " to " + cur_new_name + " : ")
+    # cur_name = input("Tell me the name of the currency you have for exchange: ")
+    # cur_amount = input("Enter the amount of " + cur_name + " you want to exchange: ")
+    # cur_new_name = input("Tell me the name of the currency you want to convert to: ")
+    # cur_exchange_rate = input("Enter the exchange rate from " + cur_name + " to " + cur_new_name + " : ")
+    #
+    # # calculate the conversion
+    # cur_new_amount = float(cur_amount) / float(cur_exchange_rate)
+    # cur_new_amount = round(cur_new_amount, 2)  # round to 2 digits
 
-    # calculate the conversion
-    cur_new_amount = float(cur_amount) / float(cur_exchange_rate)
-    cur_new_amount = round(cur_new_amount, 2)  # round to 2 digits
-
-    # print the results
-    print("")  # extra blank line
-    print("You can exchange", cur_amount, cur_name, "to", cur_new_amount, cur_new_name)
+    # # print the results
+    # print("")  # extra blank line
+    # print("You can exchange", cur_amount, cur_name, "to", cur_new_amount, cur_new_name)
