@@ -8,6 +8,31 @@ import math
 RATE_FILE = 'conversion_rates.csv'
 
 
+# Get and confirm a Y of N answer
+def get_yn():
+    # Loop until valid response is given
+    while True:
+        response = input("Please enter (Y)es or (N)o: ").lower()
+
+        # Allow first letter or whole word
+        if response in ('y', 'yes', '(y)es'):
+            return 'y'
+        elif response in ('n', 'no', '(n)o'):
+            return 'n'
+
+
+
+# Get text input
+def get_text(f_input_msg):
+    print(f"{f_input_msg} :")
+    while True:
+        response = input('> ').upper()
+        if len(response) == 0:
+            return None
+        else:
+            return response
+
+
 # Check if string can be converted to float
 def is_float(f_string):
     try:
@@ -25,7 +50,6 @@ def load_rates(rate_file):
             reader = csv.DictReader(csvfile)
             # initialize rate list
             f_rate_list = list()
-            f_rate_list.append({'country': 'USA', 'currency': 'DOLLAR', 'rate': '1.00'})
             for row in reader:
                 f_rate_list.append({'country': row['COUNTRY'], 'currency': row['CURRENCY'], 'rate': row['RATE']})
 
@@ -57,7 +81,8 @@ def currency_detail(f_order, f_rate_list):
     currency = f_rate_list[f_order]['currency']
     country = f_rate_list[f_order]['country']
     rate = f_rate_list[f_order]['rate']
-    return str(f_order), currency, country, rate
+    # Increase display order by 1 so list starts with 1, not 0
+    return str(f_order+1), currency, country, rate
 
 
 # Print the currency detail header
@@ -140,9 +165,30 @@ def get_menu_response(f_menu_tuple):
         print(f"Please enter a digit between 1 and {len(f_menu_tuple)}.")
 
 
+# Get new rate
+def get_rate():
+    # loop until valid response or exit
+    while True:
+        response = input("Please enter the new rate (blank for no change): ").strip()
+        # User entered nothing, return original amount
+        if len(response) == 0:
+            return None
+        else:
+            if not is_float(response):
+                print("Please enter a valid numeric rate.")
+            else:
+                response = float(response)
+                if response <= 0:
+                    print("Please enter an amount greater than zero.")
+                else:
+                    # Convert rate to string rounded to 4 digits
+                    response = str(round(response, 4))
+                    return response
+
+
 # Get and validate new conversion fee
 def get_new_fee(f_conversion_fee):
-    # loop until valid response or quit
+    # loop until valid response or exit
     while True:
         response = input("Please enter the new fee as a percent (blank for no change): ").strip()
         # User entered nothing, return original amount
@@ -166,16 +212,17 @@ def get_new_fee(f_conversion_fee):
 
 
 # Check that user selected currency type is valid
-def get_currency_type(f_rate_list, f_input_string):
+def get_currency_type(f_rate_list, f_input_msg):
     # loop until user selects valid currency type
     while True:
         # Get user input with message supplied
         print()
-        response = input(f"{f_input_string}: ").strip().rstrip('.')
+        response = input(f"{f_input_msg}: ").strip().rstrip('.')
         # check if an integer was entered
         if response.isdigit():
             response = int(response)
             if response in range(1, len(f_rate_list)+1):
+                # Decrease order by 1 to match list index
                 return response - 1
 
         # User did not enter a valid menu response
@@ -240,16 +287,64 @@ def exchange_action(f_menu_choice, f_rate_list):
     if f_menu_choice == 1:
         print_rates(f_rate_list)
 
-    # 2. Update exchange rate
+    # 2. Change exchange rate
     if f_menu_choice == 2:
         print_rates(f_rate_list)
         update_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to update")
+        # print the single rate details
         print()
         print_currency_header()
         print()
         print('-' * 43)
         display_currency(update_currency, f_rate_list)
         print()
+        new_rate = get_rate()
+        print()
+        if new_rate:
+            print(f"The new rate is {new_rate}. Please confirm updating the rate table.")
+            if get_yn() == 'y':
+                f_rate_list[update_currency]['rate'] = new_rate
+                print()
+                print(f"Rate for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} " 
+                      f"updated to {f_rate_list[update_currency]['rate']}.")
+            else:
+                print()
+                print(f"Rate change for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} was canceled.")
+        else:
+            print("No rate change was made.")
+
+    # 3. Add new currency
+    if f_menu_choice == 3:
+        print()
+        print()
+        new_currency_country = get_text("Enter the country name of this currency")
+
+        while True:
+            if new_currency_country:
+                new_currency_name = get_text("Enter the name of the new currency")
+
+                if new_currency_name:
+                    new_rate = get_rate()
+
+                    if new_rate:
+                        print(f"The new rate is: {new_currency_country} {new_currency_name} {new_rate}. Please confirm updating the rate table.")
+                        if get_yn() == 'y':
+                            #f_rate_list[update_currency]['rate'] = new_rate
+                            print()
+                            print(
+                                f"Rate for {new_currency_country} {new_currency_name} "
+                                f"added with rate {new_rate}.")
+                        else:
+                            print()
+                            print(
+                                f"New currency for {new_currency_country} {new_currency_name} was canceled.")
+                        break
+
+            print("No rate change was made.")
+            break
+
+
+
 
 
 # Perform main menu action
@@ -300,7 +395,6 @@ def main_action(f_menu_choice, f_conv_fee, f_rate_list):
         print(f"The final converted amount with fee is {round(converted_amount - fee, 4)}"
               f" {f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
 
-
     # 4. Update exchange rates
     elif f_menu_choice == 4:
         exchange_menu(rate_list)
@@ -324,7 +418,7 @@ rate_list = load_rates(RATE_FILE)
 main_menu_tuple = ('Show exchange rates', 'Set exchange fee', 'Convert a currency',
                    'Update exchange rates', 'Quit')
 
-exchange_menu_tuple = ('Show exchange rates', 'Update exchange rate', 'Add new currency',
+exchange_menu_tuple = ('Show exchange rates', 'Change exchange rate', 'Add new currency',
                        'Remove a currency', 'Save rates to file', 'Load rates from file',
                        'Exit')
 
