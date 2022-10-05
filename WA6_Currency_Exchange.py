@@ -3,6 +3,7 @@
 
 import csv  # csv Library to load and save exchange rate data
 import math
+from time import sleep
 
 # Constant for rate file name
 RATE_FILE = 'conversion_rates.csv'
@@ -26,6 +27,7 @@ def get_text(f_input_msg):
     print(f"{f_input_msg}: ")
     while True:
         response = input('> ').upper()
+        # If user enters no response
         if len(response) == 0:
             return None
         else:
@@ -139,7 +141,7 @@ def display_currency(f_order, f_rate_list):
     print(f_rate, end='')
 
 
-    # print the single rate details
+# print the single rate details
 def print_single_rate(f_update_currency, f_rate_list):
     print_currency_header()
     print()
@@ -230,13 +232,13 @@ def get_rate():
 
 
 # Get and validate new conversion fee
-def get_new_fee(f_conversion_fee):
+def get_new_fee():
     # loop until valid response or exit
     while True:
         response = input("Please enter the new fee as a percent (blank for no change): ").strip()
-        # User entered nothing, return original amount
+        # User entered nothing
         if len(response) == 0:
-            return f_conversion_fee
+            return None
         # Check if response ends with % sign
         elif not response.endswith('%'):
             print("Please enter a percentage ending with %.")
@@ -261,12 +263,15 @@ def get_currency_type(f_rate_list, f_input_msg):
         # Get user input with message supplied
         print()
         response = input(f"{f_input_msg}: ").strip().rstrip('.')
+        # If user enters no response
+        if len(response) == 0:
+            return None
+
         # check if an integer was entered
-        if response.isdigit():
+        elif response.isdigit():
             response = int(response)
             if response in range(1, len(f_rate_list)+1):
-                # Decrease order by 1 to match list index
-                return response - 1
+                return response
 
         # User did not enter a valid menu response
         print("Please enter a valid # from the currency list")
@@ -277,9 +282,15 @@ def get_currency_amount(f_currency, f_country):
     # Loop until valid response is entered
     while True:
         print()
-        response = input(f"Please enter the amount of {f_currency} {f_country} to convert: ").strip()
-        if is_float(response):
+        response = input(f"Please enter the amount of {f_currency} {f_country} to convert (blank to cancel): ").strip()
+        # If user enters no response
+        if len(response) == 0:
+            return None
+
+        # If response can be converted to float
+        elif is_float(response):
             response = float(response)
+
             if response > 0:
                 return response
 
@@ -295,16 +306,16 @@ def currency_convert(f_from_rate, f_to_rate, f_amount, f_fee):
 
     # Divide from currency by to currency to get rate, handle divide by zero
     try:
-        exchange_rate = f_from_rate / f_to_rate
+        exchange_rate = f_to_rate / f_from_rate
     except ZeroDivisionError:
         print('Error in conversion rate. Cannot divide by zero')
         return 0, 0
 
-    # Multiply rate by exchange amount to get sub-total
+    # Multiply rate by exchange amount to get subtotal
     sub_total = exchange_rate * f_amount
     sub_total = round(sub_total, 4)
 
-    # Multiply sub-total by fee percent to get fee
+    # Multiply subtotal by fee percent to get fee
     fee = sub_total * f_fee
     fee = round(fee, 4)
 
@@ -320,10 +331,11 @@ def exchange_menu(f_rate_list):
         print()
         display_menu(exchange_menu_tuple)
         exchange_menu_response = get_menu_response(exchange_menu_tuple)
-        exit_function = exchange_action(exchange_menu_response, f_rate_list)
+        exit_function, f_rate_list = exchange_action(exchange_menu_response, f_rate_list)
 
         if exit_function:
-            break
+            return f_rate_list
+
 
 # Perform exchange actions
 def exchange_action(f_menu_choice, f_rate_list):
@@ -341,42 +353,51 @@ def exchange_action(f_menu_choice, f_rate_list):
         print_rates(f_rate_list)
 
         # Get currency to update
-        update_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to update")
-        print()
-        # print the single rate details
-        print_single_rate(update_currency, f_rate_list)
-        print()
-        # Get new rate from user
-        new_rate = get_rate()
-        print()
-        if new_rate:
-            print(f"The new rate is {new_rate}. Please confirm updating the rate table.")
+        update_currency = get_currency_type(f_rate_list,
+                                            "Please enter the # of the currency to update (Blank for no change)")
 
-            # User replied Yes - change rate
-            if get_yn() == 'y':
-                f_rate_list[update_currency]['rate'] = new_rate
-                print()
-                print(f"rate for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} " 
-                      f"updated to {f_rate_list[update_currency]['rate']}.")
+        if update_currency:
+            # realign user input to list index
+            update_currency -= 1
+            print()
 
-            # User replied No - no rate change
-            else:
-                print()
-                print(f"rate change for {f_rate_list[update_currency]['country']} "
-                      f"{f_rate_list[update_currency]['currency']} was canceled.")
-        else:
-            print("No rate change was made.")
+            # print the single rate details
+            print_single_rate(update_currency, f_rate_list)
+            print()
+
+            # Get new rate from user
+            print()
+            new_rate = get_rate()
+            print()
+            if new_rate:
+                print(f"The new rate is {new_rate}. Please confirm updating the rate table.")
+
+                # User replied Yes - change rate
+                if get_yn() == 'y':
+                    f_rate_list[update_currency]['rate'] = new_rate
+                    print()
+                    print(f"rate for {f_rate_list[update_currency]['country']} "
+                          f"{f_rate_list[update_currency]['currency']} " 
+                          f"updated to {f_rate_list[update_currency]['rate']}.")
+
+                # User replied No - no rate change
+                else:
+                    print()
+                    print(f"rate change for {f_rate_list[update_currency]['country']} "
+                          f"{f_rate_list[update_currency]['currency']} was canceled.")
+
+        print("No rate change was made.")
 
     # 3. Add new currency
     if f_menu_choice == 3:
         print()
 
         # Get currency details
-        new_currency_country = get_text("Enter the country name of this currency")
+        new_currency_country = get_text("Enter the country name of this currency (blank to cancel)")
         # Loop will exit if user gives blank entry
         while True:
             if new_currency_country:
-                new_currency_name = get_text("Enter the name of the new currency")
+                new_currency_name = get_text("Enter the name of the new currency (blank to cancel)")
 
                 if new_currency_name:
                     new_rate = get_rate()
@@ -400,7 +421,7 @@ def exchange_action(f_menu_choice, f_rate_list):
                             print(f"New currency for {new_currency_country} {new_currency_name} was canceled.")
                         break
 
-            print("No rate change was made.")
+            print("No new currency was added.")
             break
 
     # 4. Remove currency
@@ -410,31 +431,38 @@ def exchange_action(f_menu_choice, f_rate_list):
         print_rates(f_rate_list)
 
         # Get currency to remove
-        remove_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to remove")
+        remove_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to remove (blank to cancel)")
 
-        print()
-        # print the single rate details
-        print_single_rate(remove_currency, f_rate_list)
-
-        print()
-        print()
-        # Get user confirm to remove currency
-        print("Please confirm removing the currency and rate.")
-
-        print()
-        # User replied Yes - Add rate
-        if get_yn() == 'y':
+        if remove_currency:
+            # realign user input to list index
+            remove_currency -= 1
             print()
-            print(f"rate for {f_rate_list[remove_currency]['country']} "
-                  f"{f_rate_list[remove_currency]['currency']} has been removed from the list.")
+            # print the single rate details
+            print_single_rate(remove_currency, f_rate_list)
 
-            del f_rate_list[remove_currency]
+            print()
+            print()
+            # Get user confirm to remove currency
+            print("Please confirm removing the currency and rate.")
 
-        # User replied No - cancel rate add
+            print()
+            # User replied Yes - Add rate
+            if get_yn() == 'y':
+                print()
+                print(f"rate for {f_rate_list[remove_currency]['country']} "
+                      f"{f_rate_list[remove_currency]['currency']} has been removed from the list.")
+
+                del f_rate_list[remove_currency]
+
+            # User replied No - cancel rate add
+            else:
+                print()
+                print(f"Removing currency {f_rate_list[remove_currency]['country']} "
+                      f"{f_rate_list[remove_currency]['currency']} was canceled.")
+
         else:
             print()
-            print(f"Removing currency {f_rate_list[remove_currency]['country']} "
-                  f"{f_rate_list[remove_currency]['currency']} was canceled.")
+            print("Remove a currency was cancelled.")
 
     # 5. Save rates to file
     if f_menu_choice == 5:
@@ -449,7 +477,7 @@ def exchange_action(f_menu_choice, f_rate_list):
         if get_yn() == 'y':
             print()
             print("The new rates have been written to the file.")
-            save_rates('temp.csv', f_rate_list)
+            save_rates(RATE_FILE, f_rate_list)
         # User responded No - Do not save rates to file
         else:
             print()
@@ -477,7 +505,9 @@ def exchange_action(f_menu_choice, f_rate_list):
 
     # 7. Exit - Return to main menu
     if f_menu_choice == 7:
-        return True
+        return True, f_rate_list
+
+    return False, f_rate_list
 
 
 # Perform main menu action
@@ -487,16 +517,27 @@ def main_action(f_menu_choice, f_conv_fee, f_rate_list):
     if f_menu_choice == 1:
         # Print rates
         print()
-        print_rates(rate_list)
+        print_rates(f_rate_list)
+
+        # Current exchange fee as percentage
+        print("Exchange fee: " + "{:.2%}".format(f_conv_fee))
+        print()
 
     # 2. Set exchange fee
     elif f_menu_choice == 2:
         print()
-        print("Exchange fee is a percentage of final conversion amount.")
+        print("Exchange fee is a percentage of the final conversion amount.")
         print("Current exchange fee: " + "{:.2%}".format(f_conv_fee))
-        f_conv_fee = get_new_fee(f_conv_fee)
         print()
-        print("The new conversion fee is " + "{:.2%}".format(f_conv_fee))
+        new_fee = get_new_fee()
+        print()
+        # if user entered a new rate
+        if new_fee:
+            f_conv_fee = new_fee
+            print("The new conversion fee is " + "{:.2%}".format(f_conv_fee))
+        # User did not enter a new rate
+        else:
+            print("The conversion fee of " + "{:.2%}".format(f_conv_fee) + " was not changed.")
 
     # 3. Convert a currency
     elif f_menu_choice == 3:
@@ -506,36 +547,58 @@ def main_action(f_menu_choice, f_conv_fee, f_rate_list):
         print_rates(f_rate_list)
 
         # Get the FROM currency type
-        from_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to convert FROM")
+        from_currency = get_currency_type(f_rate_list,
+                                          "Please enter the # of the currency to convert FROM (blank to cancel)")
 
-        # Get the FROM currency amount
-        exchange_amount = get_currency_amount(f_rate_list[from_currency]['country'],
-                                              f_rate_list[from_currency]['currency'])
+        # verify response was entered, loop will exit if no entry
+        while True:
+            if from_currency:
+                # Realign user input to list index
+                from_currency -= 1
+                # Get the FROM currency amount
+                exchange_amount = get_currency_amount(f_rate_list[from_currency]['country'],
+                                                      f_rate_list[from_currency]['currency'])
 
-        # get the TO currency type
-        to_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to convert TO")
+                if exchange_amount:
+                    # get the TO currency type
+                    to_currency = get_currency_type(f_rate_list,
+                                                    "Please enter the # of the currency to convert TO (blank to cancel)")
 
-        # Do conversion math
-        converted_amount, fee = currency_convert(f_rate_list[from_currency]['rate'],
-                                                 f_rate_list[to_currency]['rate'],
-                                                 exchange_amount, conversion_fee)
+                    if to_currency:
+                        # Realign user input to list index
+                        to_currency -= 1
+                        # Do conversion math
+                        converted_amount, fee = currency_convert(f_rate_list[from_currency]['rate'],
+                                                                 f_rate_list[to_currency]['rate'],
+                                                                 exchange_amount, conversion_fee)
 
-        print()
-        print(f"You can exchange {exchange_amount} {f_rate_list[from_currency]['country']} "
-              f"{f_rate_list[from_currency]['currency']} for {converted_amount} "
-              f"{f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
-        print(f"The exchange fee is {fee} {f_rate_list[to_currency]['currency']}.")
-        print(f"The final converted amount with fee is {round(converted_amount - fee, 4)}"
-              f" {f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
+                        print()
+                        # Sleep delay gives illusion that calculation work takes some time
+                        sleep(.6)
+                        print(f"You can exchange {exchange_amount} {f_rate_list[from_currency]['country']} "
+                              f"{f_rate_list[from_currency]['currency']} for {converted_amount} "
+                              f"{f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
+                        print(f"The exchange fee is {fee} {f_rate_list[to_currency]['currency']}.")
+                        print(f"The final converted amount with fee is {round(converted_amount - fee, 4)}"
+                              f" {f_rate_list[to_currency]['country']} {f_rate_list[to_currency]['currency']}.")
+                        print()
+                        input("Press <enter> to continue.")
+                        break
+
+            # User canceled by giving no entry
+            print()
+            print("Conversion was cancelled.")
+            break
 
     # 4. Update exchange rates
     elif f_menu_choice == 4:
-        exchange_menu(rate_list)
+        f_rate_list = exchange_menu(f_rate_list)
 
     # 5. Quit
     elif f_menu_choice == 5:
+        return True, f_conv_fee, f_rate_list
 
-        return True
+    return False, f_conv_fee, f_rate_list
 
 
 # Main
@@ -551,9 +614,10 @@ main_menu_tuple = ('Show exchange rates', 'Set exchange fee', 'Convert a currenc
 
 exchange_menu_tuple = ('Show exchange rates', 'Change exchange rate', 'Add new currency',
                        'Remove a currency', 'Save rates to file', 'Load rates from file',
-                       'Exit')
+                       'Return to Main Menu')
 
 # intro
+print("- - - - - Conversion Utility - - - - -")
 print("This program will help you convert currency")
 print("")  # extra blank line
 
@@ -565,14 +629,13 @@ print("Exchange fee: " + "{:.2%}".format(conversion_fee))
 print()
 
 while True:
-    print("- - - - - Conversion Utility - - - - -")
     print()
     display_menu(main_menu_tuple)
     # get input from user
 
     menu_response = get_menu_response(main_menu_tuple)
 
-    quit_program = main_action(menu_response, conversion_fee, rate_list)
+    quit_program, conversion_fee, rate_list = main_action(menu_response, conversion_fee, rate_list)
 
     if quit_program:
         print()
@@ -582,4 +645,3 @@ while True:
         quit()
 
     print()
-
