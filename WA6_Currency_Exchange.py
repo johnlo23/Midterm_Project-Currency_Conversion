@@ -21,10 +21,9 @@ def get_yn():
             return 'n'
 
 
-
 # Get text input
 def get_text(f_input_msg):
-    print(f"{f_input_msg} :")
+    print(f"{f_input_msg}: ")
     while True:
         response = input('> ').upper()
         if len(response) == 0:
@@ -43,21 +42,23 @@ def is_float(f_string):
 
 
 # Load rates from CSV file
-def load_rates(rate_file):
+# list[dictionary{}] format is:
+#   f_rate_list = {'country': row['country'], 'currency': row['currency'], 'rate': row['rate']}
+def load_rates(f_rate_file):
     # Attempt to open and read data file
     try:
-        with open(rate_file, newline='') as csvfile:
+        with open(f_rate_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             # initialize rate list
             f_rate_list = list()
             for row in reader:
-                f_rate_list.append({'country': row['COUNTRY'], 'currency': row['CURRENCY'], 'rate': row['RATE']})
+                f_rate_list.append({'country': row['country'], 'currency': row['currency'], 'rate': row['rate']})
 
     # If file not found
     except FileNotFoundError:
         print()
         print("Error: File Not Found\n"
-              f"The file '{rate_file}' could not be found. Please ensure it is in the\n"
+              f"The file '{f_rate_file}' could not be found. Please ensure it is in the\n"
               "application folder.")
         print()
         input("Press <enter> to quit.")
@@ -67,8 +68,42 @@ def load_rates(rate_file):
     except KeyError:
         print()
         print("Error: Incorrect header in data file\n"
-              f"The data file '{rate_file}' does not have the correct header row.\n"
-              "The first row must contain the names: COUNTRY, CURRENCY, RATE.")
+              f"The data file '{f_rate_file}' does not have the correct header row.\n"
+              "The first row must contain the names: country, currency, rate.")
+        print()
+        input("Press <enter> to quit.")
+        quit()
+
+    return f_rate_list
+
+
+# Save rates to CSV file
+def save_rates(f_rate_file, f_rate_list):
+    # Attempt to open and read data file
+    try:
+        with open(f_rate_file, 'w', newline='') as csvfile:
+            field_names = ('country', 'currency', 'rate')
+            writer = csv.DictWriter(csvfile, field_names)
+            writer.writeheader()
+            for row in f_rate_list:
+                writer.writerow(row)
+
+    # If file not found
+    except FileNotFoundError:
+        print()
+        print("Error: File Not Found\n"
+              f"The file '{f_rate_file}' could not be found. Please ensure it is in the\n"
+              "application folder.")
+        print()
+        input("Press <enter> to quit.")
+        quit()
+
+    # If header of data file does not have correct field names
+    except KeyError:
+        print()
+        print("Error: Incorrect header in data file\n"
+              f"The data file '{f_rate_file}' does not have the correct header row.\n"
+              "The first row must contain the names: country, currency, rate.")
         print()
         input("Press <enter> to quit.")
         quit()
@@ -104,6 +139,14 @@ def display_currency(f_order, f_rate_list):
     print(f_rate, end='')
 
 
+    # print the single rate details
+def print_single_rate(f_update_currency, f_rate_list):
+    print_currency_header()
+    print()
+    print('-' * 43)
+    display_currency(f_update_currency, f_rate_list)
+
+
 # Print current rates
 def print_rates(f_rate_list):
 
@@ -117,7 +160,6 @@ def print_rates(f_rate_list):
     half_list_len = math.ceil(list_len / 2)
 
     # Heading
-    print()
     print_currency_header()
     print(" "*10, end='')
     print_currency_header()
@@ -273,7 +315,7 @@ def exchange_menu(f_rate_list):
     # Loop to return to exchange rate menu until user exits
     while True:
         print()
-        print("- - - - - Exchange Rate Maintenance - - - - -")
+        print("- - - - - Exchange rate Maintenance - - - - -")
         print()
         display_menu(exchange_menu_tuple)
         exchange_menu_response = get_menu_response(exchange_menu_tuple)
@@ -285,40 +327,50 @@ def exchange_action(f_menu_choice, f_rate_list):
 
     # 1. Show exchange rates
     if f_menu_choice == 1:
+        print()
+        # Print rate list
         print_rates(f_rate_list)
 
     # 2. Change exchange rate
     if f_menu_choice == 2:
+        print()
+        # Print rate list
         print_rates(f_rate_list)
+
+        # Get currency to update
         update_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to update")
+        print()
         # print the single rate details
+        print_single_rate(update_currency, f_rate_list)
         print()
-        print_currency_header()
-        print()
-        print('-' * 43)
-        display_currency(update_currency, f_rate_list)
-        print()
+        # Get new rate from user
         new_rate = get_rate()
         print()
         if new_rate:
             print(f"The new rate is {new_rate}. Please confirm updating the rate table.")
+
+            # User replied Yes - change rate
             if get_yn() == 'y':
                 f_rate_list[update_currency]['rate'] = new_rate
                 print()
-                print(f"Rate for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} " 
+                print(f"rate for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} " 
                       f"updated to {f_rate_list[update_currency]['rate']}.")
+
+            # User replied No - no rate change
             else:
                 print()
-                print(f"Rate change for {f_rate_list[update_currency]['country']} {f_rate_list[update_currency]['currency']} was canceled.")
+                print(f"rate change for {f_rate_list[update_currency]['country']} "
+                      f"{f_rate_list[update_currency]['currency']} was canceled.")
         else:
             print("No rate change was made.")
 
     # 3. Add new currency
     if f_menu_choice == 3:
         print()
-        print()
-        new_currency_country = get_text("Enter the country name of this currency")
 
+        # Get currency details
+        new_currency_country = get_text("Enter the country name of this currency")
+        # Loop will exit if user gives blank entry
         while True:
             if new_currency_country:
                 new_currency_name = get_text("Enter the name of the new currency")
@@ -327,21 +379,97 @@ def exchange_action(f_menu_choice, f_rate_list):
                     new_rate = get_rate()
 
                     if new_rate:
-                        print(f"The new rate is: {new_currency_country} {new_currency_name} {new_rate}. Please confirm updating the rate table.")
+                        print(f"The new currency is: {new_currency_country} {new_currency_name} {new_rate}.")
+                        print()
+                        print("Please confirm updating the rate table.")
+
+                        # User replied Yes - Add rate
                         if get_yn() == 'y':
-                            #f_rate_list[update_currency]['rate'] = new_rate
+                            f_rate_list.append({'country': new_currency_country, 'currency': new_currency_name,
+                                                'rate': new_rate})
                             print()
-                            print(
-                                f"Rate for {new_currency_country} {new_currency_name} "
-                                f"added with rate {new_rate}.")
+                            print(f"rate for {new_currency_country} {new_currency_name} "
+                                  f"added with rate {new_rate}.")
+
+                        # User replied No - cancel rate add
                         else:
                             print()
-                            print(
-                                f"New currency for {new_currency_country} {new_currency_name} was canceled.")
+                            print(f"New currency for {new_currency_country} {new_currency_name} was canceled.")
                         break
 
             print("No rate change was made.")
             break
+
+    # 4. Remove currency
+    if f_menu_choice == 4:
+        print()
+        # Print rate list
+        print_rates(f_rate_list)
+
+        print()
+        # Get currency to remove
+        remove_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to remove")
+
+        print()
+        # print the single rate details
+        print_single_rate(remove_currency, f_rate_list)
+
+        print()
+        # Get user confirm to remove currency
+        print("Please confirm removing the currency and rate.")
+
+        # User replied Yes - Add rate
+        if get_yn() == 'y':
+            print()
+            print(f"rate for {f_rate_list[remove_currency]['country']} "
+                  f"{f_rate_list[remove_currency]['currency']} has been removed from the list.")
+
+            del f_rate_list[remove_currency]
+
+        # User replied No - cancel rate add
+        else:
+            print()
+            print(f"Removing currency {f_rate_list[remove_currency]['country']} "
+                  f"{f_rate_list[remove_currency]['currency']} was canceled.")
+
+    # 5. Save rates to file
+    if f_menu_choice == 5:
+        print()
+
+        print("Are you sure you want to save loaded rates to the file?")
+        print("--------- WARNING ---------")
+        print("The existing rate file will be overwritten.")
+        print()
+
+        # User responded Yes - Save rates to csv file
+        if get_yn() == 'y':
+            print()
+            print("The new rates have been written to the file.")
+            save_rates('temp.csv', f_rate_list)
+        # User responded No - Do not save rates to file
+        else:
+            print()
+            print("The rate file has not been changed.")
+
+    # 6. Load rates from file
+    if f_menu_choice == 6:
+        print()
+
+        print("Are you sure you want to reload rates from the file?")
+        print("--------- WARNING ---------")
+        print("The existing loaded rates will be overwritten.")
+        print()
+
+        # User responded Yes - Load rates from file
+        if get_yn() == 'y':
+            print()
+            print("The rates have been reloaded from the file.")
+            # Load rates into dictionary from file
+            f_rate_list = load_rates(RATE_FILE)
+        # User responded No - Do not reload rates from file
+        else:
+            print()
+            print("Operation canceled. Rates were not loaded from file.")
 
 
 
@@ -368,7 +496,7 @@ def main_action(f_menu_choice, f_conv_fee, f_rate_list):
     # 3. Convert a currency
     elif f_menu_choice == 3:
         print()
-        print("Currency Conversion")
+        print("currency Conversion")
         # Print current rates
         print_rates(f_rate_list)
 
