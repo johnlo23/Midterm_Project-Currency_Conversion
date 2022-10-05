@@ -204,7 +204,8 @@ def get_menu_response(f_menu_tuple):
                 return int(response)
 
         # User did not enter valid integer response
-        print(f"Please enter a digit between 1 and {len(f_menu_tuple)}.")
+        print(f"Please enter a menu choice between 1 and {len(f_menu_tuple)}.")
+        print()
 
 
 # Get new rate
@@ -319,8 +320,10 @@ def exchange_menu(f_rate_list):
         print()
         display_menu(exchange_menu_tuple)
         exchange_menu_response = get_menu_response(exchange_menu_tuple)
-        exchange_action(exchange_menu_response, f_rate_list)
+        exit_function = exchange_action(exchange_menu_response, f_rate_list)
 
+        if exit_function:
+            break
 
 # Perform exchange actions
 def exchange_action(f_menu_choice, f_rate_list):
@@ -406,7 +409,6 @@ def exchange_action(f_menu_choice, f_rate_list):
         # Print rate list
         print_rates(f_rate_list)
 
-        print()
         # Get currency to remove
         remove_currency = get_currency_type(f_rate_list, "Please enter the # of the currency to remove")
 
@@ -415,9 +417,11 @@ def exchange_action(f_menu_choice, f_rate_list):
         print_single_rate(remove_currency, f_rate_list)
 
         print()
+        print()
         # Get user confirm to remove currency
         print("Please confirm removing the currency and rate.")
 
+        print()
         # User replied Yes - Add rate
         if get_yn() == 'y':
             print()
@@ -471,8 +475,9 @@ def exchange_action(f_menu_choice, f_rate_list):
             print()
             print("Operation canceled. Rates were not loaded from file.")
 
-
-
+    # 7. Exit - Return to main menu
+    if f_menu_choice == 7:
+        return True
 
 
 # Perform main menu action
@@ -529,10 +534,8 @@ def main_action(f_menu_choice, f_conv_fee, f_rate_list):
 
     # 5. Quit
     elif f_menu_choice == 5:
-        print()
-        print("Thank you for using the Conversion Utility.")
-        input("Press <enter> to quit.")
-        quit()
+
+        return True
 
 
 # Main
@@ -569,19 +572,14 @@ while True:
 
     menu_response = get_menu_response(main_menu_tuple)
 
-    main_action(menu_response, conversion_fee, rate_list)
+    quit_program = main_action(menu_response, conversion_fee, rate_list)
+
+    if quit_program:
+        print()
+        print("Thank you for using the Conversion Utility.")
+        print()
+        input("Press <enter> to quit.")
+        quit()
 
     print()
 
-    # cur_name = input("Tell me the name of the currency you have for exchange: ")
-    # cur_amount = input("Enter the amount of " + cur_name + " you want to exchange: ")
-    # cur_new_name = input("Tell me the name of the currency you want to convert to: ")
-    # cur_exchange_rate = input("Enter the exchange rate from " + cur_name + " to " + cur_new_name + " : ")
-    #
-    # # calculate the conversion
-    # cur_new_amount = float(cur_amount) / float(cur_exchange_rate)
-    # cur_new_amount = round(cur_new_amount, 2)  # round to 2 digits
-
-    # # print the results
-    # print("")  # extra blank line
-    # print("You can exchange", cur_amount, cur_name, "to", cur_new_amount, cur_new_name)
