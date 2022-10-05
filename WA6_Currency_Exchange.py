@@ -76,6 +76,8 @@ def load_rates(f_rate_file):
         input("Press <enter> to quit.")
         quit()
 
+    # Sort rate list by country name after load
+    f_rate_list.sort(key=lambda c: c['country'])
     return f_rate_list
 
 
@@ -412,11 +414,11 @@ def exchange_action(f_menu_choice, f_rate_list):
         print()
 
         # Get currency details
-        new_currency_country = get_text("Enter the country name of this currency (blank to cancel)")
+        new_currency_country = get_text("Enter the COUNTRY name of this currency (blank to cancel)")
         # Loop will exit if user gives blank entry
         while True:
             if new_currency_country:
-                new_currency_name = get_text("Enter the name of the new currency (blank to cancel)")
+                new_currency_name = get_text("Enter the DENOMINATION name of this currency (blank to cancel)")
 
                 if new_currency_name:
                     new_rate = get_rate()
@@ -430,6 +432,8 @@ def exchange_action(f_menu_choice, f_rate_list):
                         if get_yn() == 'y':
                             f_rate_list.append({'country': new_currency_country, 'currency': new_currency_name,
                                                 'rate': new_rate})
+                            # Sort rate list with new currency
+                            f_rate_list.sort(key=lambda c: c['country'])
                             print()
                             print(f"rate for {new_currency_country} {new_currency_name} "
                                   f"added with rate {new_rate}.")
