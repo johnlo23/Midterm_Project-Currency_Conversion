@@ -113,6 +113,25 @@ def save_rates(f_rate_file, f_rate_list):
     return f_rate_list
 
 
+# For display, remove trailing zeros after the decimal if length of rate > 6
+def trunc_rate(f_rate):
+    if len(f_rate) > 6:
+        # Check if there is a decimal point
+        if f_rate.find('.'):
+            # if string ends with zero
+            if f_rate.endswith('0'):
+                # remove the rightmost character
+                f_rate = f_rate[0:-1]
+            else:
+                return f_rate
+        else:
+            return f_rate
+    else:
+        return f_rate
+    # recursive until requirements met
+    return trunc_rate(f_rate)
+
+
 # Get details of a currency
 def currency_detail(f_order, f_rate_list):
     currency = f_rate_list[f_order]['currency']
@@ -138,7 +157,7 @@ def display_currency(f_order, f_rate_list):
     print(" " * (15 - len(f_currency)), end='')
     print(f_country, end='')
     print(" " * (18 - len(f_country)), end='')
-    print(f_rate, end='')
+    print(trunc_rate(f_rate), end='')
 
 
 # print the single rate details
@@ -175,7 +194,7 @@ def print_rates(f_rate_list):
         display_currency(i, f_rate_list)
         i2 = i + half_list_len
         if i2 < list_len:
-            print(" " * (14 - len(f_rate_list[i]['rate'])), end='')
+            print(" " * (14 - len(trunc_rate(f_rate_list[i]['rate']))), end='')
             display_currency(i2, f_rate_list)
             print()
         else:
